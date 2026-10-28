@@ -1,0 +1,19 @@
+{
+  "name": "studio",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.5.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node dev.mjs",
+    "prepare": "husky",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.3",
+    "husky": "9.1.7"
+  }
+}
