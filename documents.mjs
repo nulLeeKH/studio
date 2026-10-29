@@ -23,7 +23,7 @@ export function parseDocument(text, file, defaults = {}) {
   const headingTitle = heading?.[1].replace(/<[^>]*>/g, '').replace(/&#(x[0-9a-f]+|\d+);|&(amp|lt|gt|quot|apos);/gi, (_, num, name) => num ? String.fromCodePoint(num[0].toLowerCase() === 'x' ? parseInt(num.slice(1), 16) : Number(num)) : ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" })[name.toLowerCase()])
   const title = meta.title || headingTitle || defaults.title || posix.basename(file, '.md')
   const lang = meta.lang ?? defaults.lang ?? 'ko'
-  if (!['ko', 'en'].includes(lang)) throw new Error(`${file}: lang must be ko or en`)
+  if (!/^[a-zA-Z]{2,3}(?:[-_][a-zA-Z0-9]+)*$/.test(lang)) throw new Error(`${file}: lang must be a valid language code (e.g. ko, en, pt_BR)`)
   return { title, lang, html, hasHeading: Boolean(heading) }
 }
 
@@ -50,8 +50,8 @@ export function renderMarkdown(body, sourcePath) {
 
 export function loadProductContent(dir, product) {
   const documents = [], assets = []
-  const slug = product.folder.replace(/^\d+-/, '')
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error(`products/${product.folder}: use lowercase letters, numbers and hyphens for product paths`)
+  const slug = product.slug ?? product.folder.replace(/^\d+-/, '')
+  if (!/^[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*$/.test(slug)) throw new Error(`products/${product.folder}: use letters, numbers, hyphens and underscores for product paths`)
   function visit(parts) {
     for (const entry of readdirSync(join(dir, ...parts), { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       if (entry.name.startsWith('.')) continue
@@ -64,7 +64,7 @@ export function loadProductContent(dir, product) {
         const sourcePath = `/${slug}/${next.map(encodeURIComponent).join('/')}`
         if (entry.name.endsWith('.md')) {
           const route = [...parts, entry.name.slice(0, -3)]
-          if (route.some(part => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(part))) throw new Error(`${file}: use lowercase letters, numbers and hyphens for document paths`)
+          if (route.some(part => !/^[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*$/.test(part))) throw new Error(`${file}: use letters, numbers, hyphens and underscores for document paths`)
           const path = entry.name === 'index.md' ? `/${slug}/${parts.join('/')}/` : `/${slug}/${route.join('/')}/`
           documents.push({ ...parseDocument(readFileSync(join(dir, ...next), 'utf8'), file, { sourcePath }), path, file })
         } else {
@@ -76,6 +76,15 @@ export function loadProductContent(dir, product) {
   visit([])
   const file = `products/${product.folder}/index.md`
   const html = renderMarkdown(product.body ?? '', `/${slug}/index.md`)
-  documents.unshift({ title: product.name, lang: 'ko', html, hasHeading: /<h1[ >]/.test(html), path: `/${slug}/`, file })
+  documents.unshift({
+    title: product.name,
+    lang: 'ko',
+    html,
+    hasHeading: /<h1[ >]/.test(html),
+    path: `/${slug}/`,
+    file,
+    isProductIndex: true,
+    product,
+  })
   return { slug, documents, assets }
 }

@@ -113,6 +113,25 @@ html:not(.js) .theme-toggle { display: none; }
   background: radial-gradient(var(--rule) 1px, transparent 1.2px) 0 0 / 8px 8px;
 }
 
+/* Product cover banner: large framed banner image and product summary at the top of product index */
+.cover { padding-bottom: .5rem; }
+.cover.has-body { padding-bottom: 2rem; border-bottom: 1px dashed var(--rule); margin-bottom: 2rem; }
+.cover-shot { display: block; margin-bottom: 1.25rem; padding: .35rem; border: 1px dashed var(--rule); text-decoration: none; }
+.cover-shot:hover { background: none; }
+.cover-shot img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: top; filter: grayscale(.35); }
+.cover-shot:hover img { filter: none; }
+.cover-shot-empty {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  color: var(--muted);
+  font-size: 1.25rem;
+  background: radial-gradient(var(--rule) 1px, transparent 1.2px) 0 0 / 8px 8px;
+}
+.cover-title { margin: 0 0 .5rem; font-size: 1.5rem; font-weight: 700; line-height: 1.4; }
+.cover .summary { margin: 0 0 .5rem; font-size: 1rem; color: var(--ink-2); }
+.cover .link { margin: 0; font-size: .875rem; color: var(--muted); }
+
 .site-footer { margin-top: 3rem; border-top: 1px dashed var(--rule); }
 .site-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; padding-block: .6rem 2rem; font-size: .875rem; color: var(--muted); }
 .site-footer p { margin: 0; }

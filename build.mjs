@@ -46,8 +46,11 @@ function loadProducts(dir) {
     .map(folder => {
       const file = join(dir, folder, 'index.md')
       if (!existsSync(file)) throw new Error(`products/${folder}: index.md is missing`)
-      const product = { folder, ...parseProduct(readFileSync(file, 'utf8'), `products/${folder}/index.md`) }
-      return { ...product, thumbnail: existsSync(join(dir, folder, THUMBNAIL)), ...loadProductContent(join(dir, folder), product) }
+      const parsed = parseProduct(readFileSync(file, 'utf8'), `products/${folder}/index.md`)
+      const slug = folder.replace(/^\d+-/, '')
+      const thumbnail = existsSync(join(dir, folder, THUMBNAIL))
+      const product = { folder, slug, thumbnail, ...parsed }
+      return { ...product, ...loadProductContent(join(dir, folder), product) }
     })
 }
 
@@ -101,14 +104,45 @@ ${products.length ? `  <ol>\n${products.map((p, i) => card(p, i, lang)).join('\n
 }
 
 export function renderDocument(site, doc) {
-  return layout(site, { lang: doc.lang, title: `${doc.title} · ${site.title}`, description: doc.title, path: doc.path,
-    main: `<main class="wrap"><article class="document">${doc.hasHeading ? '' : `<h1>${esc(doc.title)}</h1>`}\n${doc.html}</article></main>`,
+  const isIndex = Boolean(doc.isProductIndex && doc.product)
+  const p = doc.product
+  let content = ''
+
+  if (isIndex) {
+    const t = LANGS[doc.lang] || LANGS.ko
+    const host = p.url && new URL(p.url).host
+    const summary = p[`summary_${doc.lang}`] || p.summary_ko || p.summary_en
+    const pic = p.thumbnail
+      ? `<img src="/${esc(p.slug)}/${THUMBNAIL}" alt="" loading="eager">`
+      : `<span class="cover-shot-empty">${esc(p.name)}</span>`
+    const shot = p.url
+      ? `<a class="cover-shot" href="${esc(p.url)}" ${OUT} tabindex="-1" aria-hidden="true">${pic}</a>`
+      : `<div class="cover-shot" aria-hidden="true">${pic}</div>`
+    const titleTag = doc.hasHeading ? 'p' : 'h1'
+    const hasBody = Boolean(doc.html && doc.html.trim())
+
+    content = `<header class="cover${hasBody ? ' has-body' : ''}">
+  ${shot}
+  <${titleTag} class="cover-title">${esc(p.name)}</${titleTag}>
+${summary ? `  <p class="summary">${esc(summary)}</p>\n` : ''}  <p class="link">${host ? `<a href="${esc(p.url)}" ${OUT}>${esc(host)}</a>` : t.soon}</p>
+</header>${hasBody ? `\n<div class="document-body">${doc.html}</div>` : ''}`
+  } else {
+    content = `${doc.hasHeading ? '' : `<h1>${esc(doc.title)}</h1>`}\n${doc.html}`
+  }
+
+  return layout(site, {
+    lang: doc.lang,
+    title: `${doc.title} · ${site.title}`,
+    description: (isIndex && (p.summary_ko || p.summary_en)) || doc.title,
+    path: doc.path,
+    main: `<main class="wrap"><article class="document">${content}</article></main>`,
     footer: `<footer class="site-footer"><div class="wrap"><p>© ${esc(site.title)} · A studio by <a href="${esc(site.author.url)}" ${OUT}>${esc(site.author.name)}</a></p></div></footer>`,
   })
 }
 
 function layout(site, { lang, title, description, path, main, footer, alternates = '' }) {
-  const t = LANGS[lang]
+  const t = LANGS[lang] || LANGS.ko
+  const locale = t.locale ?? (lang.includes('_') ? lang : `${lang}_${lang.toUpperCase()}`)
   return `<!doctype html>
 <html lang="${lang}">
 <head>
@@ -121,7 +155,7 @@ function layout(site, { lang, title, description, path, main, footer, alternates
 ${alternates}
 <meta name="color-scheme" content="light dark">
 <meta property="og:type" content="website">
-<meta property="og:locale" content="${t.locale}">
+<meta property="og:locale" content="${locale}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${esc(site.url)}${path}">
