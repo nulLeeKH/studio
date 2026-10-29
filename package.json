@@ -15,5 +15,9 @@
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
     "husky": "9.1.7"
+  },
+  "dependencies": {
+    "micromark": "4.0.3",
+    "micromark-extension-gfm": "3.0.0"
   }
 }

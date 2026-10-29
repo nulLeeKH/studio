@@ -117,3 +117,24 @@ html:not(.js) .theme-toggle { display: none; }
 .site-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; padding-block: .6rem 2rem; font-size: .875rem; color: var(--muted); }
 .site-footer p { margin: 0; }
 .site-footer a { color: inherit; }
+
+/* Standalone Markdown documents share the studio's colors and reading width. */
+.document { padding-block: 2.5rem 0; overflow-wrap: anywhere; }
+.document h1 { margin: 0 0 2rem; font-size: 1.5rem; line-height: 1.5; }
+.document h2 { margin: 2rem 0 1rem; padding-bottom: .5rem; border-bottom: 3px double var(--rule); font-size: 1.15rem; }
+.document h3, .document h4, .document h5, .document h6 { margin: 1.5rem 0 .75rem; font-size: 1rem; }
+.document p, .document ul, .document ol, .document blockquote, .document pre { margin: 1rem 0; }
+.document ul, .document ol { padding-left: 2em; }
+.document li + li { margin-top: .4rem; }
+.document blockquote { margin-inline: 0; padding-left: 1rem; border-left: 3px solid var(--rule); color: var(--ink-2); }
+.document code { font-family: inherit; background: color-mix(in srgb, var(--ink) 7%, transparent); padding: .1em .25em; }
+.document pre { padding: 1rem; border: 1px dashed var(--rule); overflow-x: auto; }
+.document pre code { padding: 0; background: none; }
+.document table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin-block: 1rem; }
+.document th, .document td { border: 1px solid var(--rule); padding: .5rem .75rem; text-align: left; }
+.document hr { margin-block: 2rem; border: 0; border-top: 1px dashed var(--rule); }
+
+.document img { max-width: 100%; height: auto; vertical-align: middle; }
+.document figure { margin: 2.5em 0; text-align: center; }
+.document figure img { display: block; margin-inline: auto; }
+.document figcaption { margin-top: .8rem; font-size: .875rem; line-height: 1.6; color: var(--muted); text-wrap: balance; }

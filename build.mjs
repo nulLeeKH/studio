@@ -1,7 +1,8 @@
-// BURGESS1977™ studio site: products/<folder>/index.md (+ thumbnail.png) -> dist/index.html. No dependencies.
+// BURGESS1977™ studio site: product listings and standalone Markdown documents -> dist/.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { loadProductContent } from './documents.mjs'
 
 export const site = {
   title: 'BURGESS1977™',
@@ -10,7 +11,7 @@ export const site = {
   author: { name: 'nulLeeKH', url: 'https://blog.nulleekh.com' },
 }
 
-const FIELDS = ['name', 'url', 'summary_ko', 'summary_en']
+const FIELDS = ['name', 'url', 'summary_ko', 'summary_en', 'draft']
 const THUMBNAIL = 'thumbnail.png' // optional, next to index.md
 const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)
 const OUT = 'target="_blank" rel="noopener"' // every link that leaves the site opens a new tab
@@ -25,11 +26,14 @@ export function parseProduct(text, file) {
     if (!FIELDS.includes(key)) throw new Error(`${file}: unknown line "${line}" (allowed: ${FIELDS.join(', ')})`)
     meta[key] = value.trim().replace(/^(["'])(.*)\1$/, '$2')
   }
+  if ('draft' in meta) {
+    if (!['true', 'false'].includes(meta.draft)) throw new Error(`${file}: draft must be true or false`)
+    meta.draft = meta.draft === 'true'
+  }
   if (!meta.name) throw new Error(`${file}: name is required`)
   if (meta.url && !/^https?:\/\//.test(meta.url)) throw new Error(`${file}: url must start with http:// or https://`)
-  if (m[2].trim()) throw new Error(`${file}: text after the front-matter is not shown; put one line in summary_ko: and summary_en:`)
   if (!meta.summary_ko !== !meta.summary_en) throw new Error(`${file}: summary_ko and summary_en go together (Korean and English pages)`)
-  return meta
+  return { ...meta, ...(m[2].trim() ? { body: m[2].trim() } : {}) }
 }
 
 // Folders in name order (prefix them 01-, 02-, ... to set the order); dot folders are skipped.
@@ -43,7 +47,7 @@ function loadProducts(dir) {
       const file = join(dir, folder, 'index.md')
       if (!existsSync(file)) throw new Error(`products/${folder}: index.md is missing`)
       const product = { folder, ...parseProduct(readFileSync(file, 'utf8'), `products/${folder}/index.md`) }
-      return { ...product, thumbnail: existsSync(join(dir, folder, THUMBNAIL)) }
+      return { ...product, thumbnail: existsSync(join(dir, folder, THUMBNAIL)), ...loadProductContent(join(dir, folder), product) }
     })
 }
 
@@ -65,7 +69,7 @@ function card(p, i, lang) {
   const host = p.url && new URL(p.url).host
   const summary = p[`summary_${lang}`]
   // The picture repeats the address link below, so it stays out of the tab order and the accessibility tree.
-  const pic = p.thumbnail ? `<img src="/products/${esc(p.folder)}/${THUMBNAIL}" alt="" loading="lazy">` : `<span class="shot-empty">${esc(p.name)}</span>`
+  const pic = p.thumbnail ? `<img src="/${esc(p.slug ?? p.folder.replace(/^\d+-/, ''))}/${THUMBNAIL}" alt="" loading="lazy">` : `<span class="shot-empty">${esc(p.name)}</span>`
   const shot = p.url ? `<a class="shot" href="${esc(p.url)}" ${OUT} tabindex="-1" aria-hidden="true">${pic}</a>` : `<div class="shot" aria-hidden="true">${pic}</div>`
   return `<li class="product">
   ${shot}
@@ -78,30 +82,8 @@ ${summary ? `  <p class="summary">${esc(summary)}</p>\n` : ''}  <p class="link">
 export function render(site, products, lang = 'ko') {
   const t = LANGS[lang], other = t.switchTo
   const alternates = Object.entries(LANGS).map(([l, { path }]) => `<link rel="alternate" hreflang="${l}" href="${esc(site.url)}${path}">`).join('\n')
-  return `<!doctype html>
-<html lang="${lang}">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script>${THEME}</script>
-<title>${esc(site.title)}</title>
-<meta name="description" content="${esc(site.tagline)}">
-<link rel="canonical" href="${esc(site.url)}${t.path}">
-${alternates}
-<meta name="color-scheme" content="light dark">
-<meta property="og:type" content="website">
-<meta property="og:locale" content="${t.locale}">
-<meta property="og:title" content="${esc(site.title)}">
-<meta property="og:description" content="${esc(site.tagline)}">
-<meta property="og:url" content="${esc(site.url)}${t.path}">
-<meta property="og:image" content="${esc(site.url)}/og.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/style.css">
-</head>
-<body>
-<header class="site-header"><div class="wrap"><a class="brand" href="${t.path}">${esc(site.title)}</a><button class="theme-toggle" type="button" title="${t.dark}"><span class="sr-only">${t.dark}</span>${ICONS}</button></div></header>
-<main class="wrap">
+  return layout(site, { lang, title: site.title, description: site.tagline, path: t.path, alternates,
+    main: `<main class="wrap">
 <section class="intro">
   <span class="mark" aria-hidden="true"></span>
   <h1>${esc(site.tagline)}</h1>
@@ -110,11 +92,48 @@ ${alternates}
   <h2 id="products-title"><span>${t.works} (${products.length})</span></h2>
 ${products.length ? `  <ol>\n${products.map((p, i) => card(p, i, lang)).join('\n')}\n  </ol>` : `  <p>${t.none}</p>`}
 </section>
-</main>
-<footer class="site-footer"><div class="wrap">
+</main>`,
+    footer: `<footer class="site-footer"><div class="wrap">
   <p>© ${esc(site.title)} · A studio by <a href="${esc(site.author.url)}" ${OUT}>${esc(site.author.name)}</a></p>
   <p><a href="${LANGS[other].path}" hreflang="${other}" lang="${other}">${LANG_NAME[other]}</a></p>
-</div></footer>
+</div></footer>`,
+  })
+}
+
+export function renderDocument(site, doc) {
+  return layout(site, { lang: doc.lang, title: `${doc.title} · ${site.title}`, description: doc.title, path: doc.path,
+    main: `<main class="wrap"><article class="document">${doc.hasHeading ? '' : `<h1>${esc(doc.title)}</h1>`}\n${doc.html}</article></main>`,
+    footer: `<footer class="site-footer"><div class="wrap"><p>© ${esc(site.title)} · A studio by <a href="${esc(site.author.url)}" ${OUT}>${esc(site.author.name)}</a></p></div></footer>`,
+  })
+}
+
+function layout(site, { lang, title, description, path, main, footer, alternates = '' }) {
+  const t = LANGS[lang]
+  return `<!doctype html>
+<html lang="${lang}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>${THEME}</script>
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(description)}">
+<link rel="canonical" href="${esc(site.url)}${path}">
+${alternates}
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="${t.locale}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:url" content="${esc(site.url)}${path}">
+<meta property="og:image" content="${esc(site.url)}/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="site-header"><div class="wrap"><a class="brand" href="${t.path}">${esc(site.title)}</a><button class="theme-toggle" type="button" title="${t.dark}"><span class="sr-only">${t.dark}</span>${ICONS}</button></div></header>
+${main}
+${footer}
 <script>
 document.querySelector('.theme-toggle').addEventListener('click', () => {
   const root = document.documentElement
@@ -129,16 +148,43 @@ document.querySelector('.theme-toggle').addEventListener('click', () => {
 }
 
 export function build(root, out) {
-  const products = loadProducts(join(root, 'products'))
+  const allProducts = loadProducts(join(root, 'products'))
+  const products = allProducts.filter(product => !product.draft)
+  const documents = allProducts.flatMap(product => product.documents)
+  const assets = allProducts.flatMap(product => product.assets)
+  const reserved = new Set(['en', ...readdirSync(join(root, 'static'))])
+  const slugs = new Set()
+  for (const product of allProducts) {
+    if (reserved.has(product.slug) || slugs.has(product.slug)) throw new Error(`products/${product.folder}: product path /${product.slug}/ conflicts with a site route, static asset or product`)
+    slugs.add(product.slug)
+  }
+  // Check every output before touching the previous build, including file/directory conflicts.
+  const outputs = new Map()
+  for (const item of [...documents.map(doc => ({ ...doc, output: `${doc.path}index.html` })), ...assets.map(asset => ({ ...asset, output: asset.path }))]) {
+    if (outputs.has(item.output)) throw new Error(`${item.file}: output path conflicts with ${outputs.get(item.output)}`)
+    outputs.set(item.output, item.file)
+  }
+  for (const [path, file] of outputs) {
+    let parent = dirname(path)
+    while (parent !== '/') {
+      if (outputs.has(parent)) throw new Error(`${file}: output path conflicts with ${outputs.get(parent)}`)
+      parent = dirname(parent)
+    }
+  }
   rmSync(out, { recursive: true, force: true })
   cpSync(join(root, 'static'), out, { recursive: true })
-  for (const p of products.filter(p => p.thumbnail)) {
-    mkdirSync(join(out, 'products', p.folder), { recursive: true })
-    cpSync(join(root, 'products', p.folder, THUMBNAIL), join(out, 'products', p.folder, THUMBNAIL))
+  for (const asset of assets) {
+    mkdirSync(dirname(join(out, asset.path)), { recursive: true })
+    cpSync(asset.source, join(out, asset.path))
   }
   for (const [lang, { path }] of Object.entries(LANGS)) {
     mkdirSync(join(out, path), { recursive: true })
     writeFileSync(join(out, path, 'index.html'), render(site, products, lang))
+  }
+  for (const doc of documents) {
+    const dir = join(out, doc.path)
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'index.html'), renderDocument(site, doc))
   }
   return products
 }
