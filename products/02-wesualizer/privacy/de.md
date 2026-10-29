@@ -2,7 +2,7 @@
 
 Zuletzt aktualisiert: 29. Oktober 2026
 
-Wesualizer, bereitgestellt von BURGESS1977, greift auf Inhalte von Webseiten und PDFs sowie auf Dokument-URLs zu, um Textanalysen, Zusammenfassungen, Worthervorhebungen und damit verbundene Funktionen anzubieten. Analyse, KI-Zusammenfassung und Übersetzung erfolgen auf Ihrem Gerät.
+Wesualizer, bereitgestellt von BURGESS1977™, greift auf Inhalte von Webseiten und PDFs sowie auf Dokument-URLs zu, um Textanalysen, Zusammenfassungen, Worthervorhebungen und damit verbundene Funktionen anzubieten. Analyse, KI-Zusammenfassung und Übersetzung erfolgen auf Ihrem Gerät.
 
 Wir empfangen, verkaufen oder teilen keine von der Erweiterung verarbeiteten Dokumentinhalte oder Browsing-Aktivitäten. Wesualizer enthält weder Werbung noch Analyse-Tracking.
 

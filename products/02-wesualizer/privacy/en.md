@@ -2,7 +2,7 @@
 
 Last updated: October 29, 2026
 
-Wesualizer, provided by BURGESS1977, accesses webpage and PDF content and document URLs to provide text analysis, summaries, word highlighting, and related features. Analysis, AI summarization, and translation run on your device.
+Wesualizer, provided by BURGESS1977™, accesses webpage and PDF content and document URLs to provide text analysis, summaries, word highlighting, and related features. Analysis, AI summarization, and translation run on your device.
 
 We do not receive, sell, or share the document content or browsing activity processed by the extension. Wesualizer contains no advertising or analytics tracking.
 

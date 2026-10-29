@@ -2,7 +2,7 @@
 
 Dernière mise à jour : 29 octobre 2026
 
-Wesualizer, proposé par BURGESS1977, accède au contenu des pages web et des PDF ainsi qu’aux URL des documents pour fournir l’analyse de texte, les résumés, la mise en évidence des mots et les fonctions associées. L’analyse, les résumés par IA et la traduction s’exécutent sur votre appareil.
+Wesualizer, proposé par BURGESS1977™, accède au contenu des pages web et des PDF ainsi qu’aux URL des documents pour fournir l’analyse de texte, les résumés, la mise en évidence des mots et les fonctions associées. L’analyse, les résumés par IA et la traduction s’exécutent sur votre appareil.
 
 Nous ne recevons, ne vendons ni ne partageons le contenu des documents ou l’activité de navigation traités par l’extension. Wesualizer ne contient ni publicité ni suivi analytique.
 

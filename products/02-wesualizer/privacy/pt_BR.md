@@ -2,7 +2,7 @@
 
 Última atualização: 29 de outubro de 2026
 
-O Wesualizer, fornecido por BURGESS1977, acessa o conteúdo de páginas da web e PDFs e as URLs dos documentos para oferecer análise de texto, resumos, destaque de palavras e recursos relacionados. A análise, os resumos com IA e a tradução são executados no seu dispositivo.
+O Wesualizer, fornecido por BURGESS1977™, acessa o conteúdo de páginas da web e PDFs e as URLs dos documentos para oferecer análise de texto, resumos, destaque de palavras e recursos relacionados. A análise, os resumos com IA e a tradução são executados no seu dispositivo.
 
 Não recebemos, vendemos nem compartilhamos o conteúdo dos documentos ou a atividade de navegação processados pela extensão. O Wesualizer não contém publicidade nem rastreamento analítico.
 
