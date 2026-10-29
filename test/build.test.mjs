@@ -40,9 +40,10 @@ test('products in folder order, escaped, linked, with the studio footer', () => 
   const out = join(root, 'dist')
   build(root, out)
   const html = readFileSync(join(out, 'index.html'), 'utf8')
-  assert.ok(html.indexOf('&#60;A&#62;') < html.indexOf('<h3>B</h3>'))
+  assert.ok(html.indexOf('&#60;A&#62;') < html.indexOf('<h3><a href="/b/">B</a></h3>'))
   assert.ok(html.includes('<span class="shot-empty">B</span>'), 'no thumbnail.png: the name stands in')
-  assert.ok(html.includes('<h3>&#60;A&#62;</h3>'), 'the name is plain text; the address below is the link')
+  assert.ok(html.includes('<h3><a href="/a/">&#60;A&#62;</a></h3>'), 'the title links to the studio project page')
+  assert.ok(html.includes('<h3><a href="/b/">B</a></h3>'), 'a project without an external URL still has an internal link')
   assert.ok(html.includes('<img src="/a/thumbnail.png"'))
   assert.ok(html.includes('<p class="link"><a href="https://a.example" target="_blank" rel="noopener">a.example</a></p>'))
   assert.ok(html.includes('<p class="link">준비 중</p>'), 'no url: no link')
@@ -61,7 +62,10 @@ test('Korean at /, English at /en/, each pointing at the other', () => {
   assert.ok(en.includes('<html lang="en">') && en.includes('<p class="summary">One line</p>') && en.includes('Works (1)') && en.includes('Coming soon'))
   assert.ok(en.includes('<a href="/" hreflang="ko" lang="ko">한국어</a>'))
   assert.ok(ko.includes('title="다크 모드 전환"') && en.includes('title="Toggle dark mode"'), 'theme button in both languages')
-  for (const html of [ko, en]) assert.ok(html.includes('<link rel="alternate" hreflang="en" href="https://studio.nulleekh.com/en/">'))
+  for (const html of [ko, en]) {
+    assert.ok(html.includes('<link rel="alternate" hreflang="en" href="https://studio.nulleekh.com/en/">'))
+    assert.ok(html.includes('<h3><a href="/a/">A</a></h3>'))
+  }
 })
 
 test('no products yet', () => {

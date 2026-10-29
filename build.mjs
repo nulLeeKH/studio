@@ -77,7 +77,7 @@ function card(p, i, lang) {
   return `<li class="product">
   ${shot}
   <p class="num">${String(i + 1).padStart(2, '0')}</p>
-  <h3>${esc(p.name)}</h3>
+  <h3><a href="/${esc(p.slug ?? p.folder.replace(/^\d+-/, ''))}/">${esc(p.name)}</a></h3>
 ${summary ? `  <p class="summary">${esc(summary)}</p>\n` : ''}  <p class="link">${host ? `<a href="${esc(p.url)}" ${OUT}>${esc(host)}</a>` : t.soon}</p>
 </li>`
 }
