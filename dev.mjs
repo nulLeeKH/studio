@@ -11,8 +11,12 @@ const out = join(root, 'dist')
 const port = Number(process.env.PORT) || 8081
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.pdf': 'application/pdf', '.json': 'application/json', '.zip': 'application/zip', '.avif': 'image/avif', '.ico': 'image/x-icon' }
 
+// One build at a time; a change during a build schedules one more.
+let building = null, again = false
 const rebuild = () => {
-  try { build(root, out); console.log('built') } catch (e) { console.error(e.message) }
+  if (building) { again = true; return }
+  building = build(root, out).then(() => console.log('built'), e => console.error(e.message))
+    .finally(() => { building = null; if (again) { again = false; rebuild() } })
 }
 rebuild()
 for (const dir of ['products', 'static']) {

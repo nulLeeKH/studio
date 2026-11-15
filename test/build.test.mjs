@@ -4,6 +4,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { build, parseProduct, render, site } from '../build.mjs'
+import sharp from 'sharp'
+
+const png = await sharp({ create: { width: 160, height: 90, channels: 3, background: '#888' } }).png().toBuffer()
 
 const fixture = products => {
   const root = mkdtempSync(join(tmpdir(), 'studio-'))
@@ -12,7 +15,7 @@ const fixture = products => {
   for (const [folder, md, image] of products) {
     mkdirSync(join(root, 'products', folder), { recursive: true })
     writeFileSync(join(root, 'products', folder, 'index.md'), md)
-    if (image) writeFileSync(join(root, 'products', folder, image), 'png')
+    if (image) writeFileSync(join(root, 'products', folder, image), png)
   }
   return root
 }
@@ -32,31 +35,31 @@ test('bad input names the file', () => {
   assert.throws(() => parseProduct('---\nname: x\nimage: a.png\n---\n', 'p'), /unknown line "image: a.png"/)
 })
 
-test('products in folder order, escaped, linked, with the studio footer', () => {
+test('products in folder order, escaped, linked, with the studio footer', async () => {
   const root = fixture([
     ['02-b', '---\nname: B\n---\n', null],
     ['01-a', '---\nname: <A>\nurl: https://a.example\n---\n', 'thumbnail.png'],
   ])
   const out = join(root, 'dist')
-  build(root, out)
+  await build(root, out)
   const html = readFileSync(join(out, 'index.html'), 'utf8')
   assert.ok(html.indexOf('&#60;A&#62;') < html.indexOf('<h3><a href="/b/">B</a></h3>'))
   assert.ok(html.includes('<span class="shot-empty">B</span>'), 'no thumbnail.png: the name stands in')
   assert.ok(html.includes('<h3><a href="/a/">&#60;A&#62;</a></h3>'), 'the title links to the studio project page')
   assert.ok(html.includes('<h3><a href="/b/">B</a></h3>'), 'a project without an external URL still has an internal link')
-  assert.ok(html.includes('<img src="/a/thumbnail.png"'))
+  assert.ok(html.includes('<img src="/a/thumbnail.webp"'))
   assert.ok(html.includes('<p class="link"><a href="https://a.example" target="_blank" rel="noopener">a.example</a></p>'))
   assert.ok(html.includes('<p class="link">준비 중</p>'), 'no url: no link')
-  assert.ok(existsSync(join(out, 'a', 'thumbnail.png')))
+  assert.ok(existsSync(join(out, 'a', 'thumbnail.webp')) && !existsSync(join(out, 'a', 'thumbnail.png')))
   assert.ok(existsSync(join(out, 'style.css')))
   assert.ok(html.includes('A studio by <a href="https://blog.nulleekh.com" target="_blank" rel="noopener">nulLeeKH</a>'))
   assert.ok(html.includes('<a href="/en/" hreflang="en" lang="en">English</a>'))
 })
 
-test('Korean at /, English at /en/, each pointing at the other', () => {
+test('Korean at /, English at /en/, each pointing at the other', async () => {
   const root = fixture([['01-a', '---\nname: A\nsummary_ko: 한 줄\nsummary_en: One line\n---\n', null]])
   const out = join(root, 'dist')
-  build(root, out)
+  await build(root, out)
   const ko = readFileSync(join(out, 'index.html'), 'utf8'), en = readFileSync(join(out, 'en', 'index.html'), 'utf8')
   assert.ok(ko.includes('<html lang="ko">') && ko.includes('<p class="summary">한 줄</p>') && ko.includes('만든 것들 (1)') && ko.includes('준비 중'))
   assert.ok(en.includes('<html lang="en">') && en.includes('<p class="summary">One line</p>') && en.includes('Works (1)') && en.includes('Coming soon'))
@@ -70,4 +73,19 @@ test('Korean at /, English at /en/, each pointing at the other', () => {
 
 test('no products yet', () => {
   assert.ok(render(site, []).includes('<p>아직 없습니다.</p>'))
+})
+
+test('one source picture becomes a thumbnail and a share card used by the product pages', async () => {
+  const root = fixture([['01-a', '---\nname: A\n---\n', 'thumbnail.png'], ['02-b', '---\nname: B\n---\n', null]])
+  const out = join(root, 'dist')
+  await build(root, out)
+  const card = await sharp(join(out, 'a', 'og.jpg')).metadata()
+  assert.deepEqual([card.width, card.height, card.format], [1200, 630, 'jpeg'])
+  const thumb = await sharp(join(out, 'a', 'thumbnail.webp')).metadata()
+  assert.deepEqual([thumb.width, thumb.height, thumb.hasAlpha], [1600, 1000, true], 'always 16:10, small pictures enlarged, margins transparent')
+  assert.ok(readFileSync(join(out, 'a', 'index.html'), 'utf8').includes('<meta property="og:image" content="https://studio.nulleekh.com/a/og.jpg">'))
+  assert.ok(readFileSync(join(out, 'b', 'index.html'), 'utf8').includes('<meta property="og:image" content="https://studio.nulleekh.com/og.jpg">'), 'no picture: the site card')
+  assert.ok(readFileSync(join(out, 'index.html'), 'utf8').includes('content="https://studio.nulleekh.com/og.jpg"'))
+  writeFileSync(join(root, 'products', '01-a', 'thumbnail.jpg'), png)
+  await assert.rejects(() => build(root, out), /use one thumbnail picture/)
 })

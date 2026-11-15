@@ -3,6 +3,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, write
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadProductContent } from './documents.mjs'
+import { OG, THUMBNAIL, THUMBNAIL_SOURCES, ogImage, thumbnail } from './images.mjs'
 
 export const site = {
   title: 'BURGESS1977™',
@@ -12,7 +13,6 @@ export const site = {
 }
 
 const FIELDS = ['name', 'url', 'summary_ko', 'summary_en', 'draft']
-const THUMBNAIL = 'thumbnail.png' // optional, next to index.md
 const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)
 const OUT = 'target="_blank" rel="noopener"' // every link that leaves the site opens a new tab
 
@@ -48,8 +48,11 @@ function loadProducts(dir) {
       if (!existsSync(file)) throw new Error(`products/${folder}: index.md is missing`)
       const parsed = parseProduct(readFileSync(file, 'utf8'), `products/${folder}/index.md`)
       const slug = folder.replace(/^\d+-/, '')
-      const thumbnail = existsSync(join(dir, folder, THUMBNAIL))
-      const product = { folder, slug, thumbnail, ...parsed }
+      // Optional source picture next to index.md; the builder derives the thumbnail and share card from it.
+      const sources = THUMBNAIL_SOURCES.filter(name => existsSync(join(dir, folder, name)))
+      if (sources.length > 1) throw new Error(`products/${folder}: use one thumbnail picture, found ${sources.join(', ')}`)
+      const thumbnailSource = sources.length ? join(dir, folder, sources[0]) : null
+      const product = { folder, slug, thumbnail: Boolean(thumbnailSource), thumbnailSource, ...parsed }
       return { ...product, ...loadProductContent(join(dir, folder), product) }
     })
 }
@@ -135,12 +138,13 @@ ${summary ? `  <p class="summary">${esc(summary)}</p>\n` : ''}  <p class="link">
     title: `${doc.title} · ${site.title}`,
     description: (isIndex && (p.summary_ko || p.summary_en)) || doc.title,
     path: doc.path,
+    image: doc.image,
     main: `<main class="wrap"><article class="document">${content}</article></main>`,
     footer: `<footer class="site-footer"><div class="wrap"><p>© ${esc(site.title)} · A studio by <a href="${esc(site.author.url)}" ${OUT}>${esc(site.author.name)}</a></p></div></footer>`,
   })
 }
 
-function layout(site, { lang, title, description, path, main, footer, alternates = '' }) {
+function layout(site, { lang, title, description, path, main, footer, alternates = '', image = '/og.jpg' }) {
   const t = LANGS[lang] || LANGS.ko
   const locale = t.locale ?? (lang.includes('_') ? lang : `${lang}_${lang.toUpperCase()}`)
   return `<!doctype html>
@@ -159,7 +163,9 @@ ${alternates}
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${esc(site.url)}${path}">
-<meta property="og:image" content="${esc(site.url)}/og.jpg">
+<meta property="og:image" content="${esc(site.url)}${esc(image)}">
+<meta property="og:image:width" content="${OG.width}">
+<meta property="og:image:height" content="${OG.height}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css">
@@ -181,11 +187,17 @@ document.querySelector('.theme-toggle').addEventListener('click', () => {
 `
 }
 
-export function build(root, out) {
+export async function build(root, out) {
   const allProducts = loadProducts(join(root, 'products'))
   const products = allProducts.filter(product => !product.draft)
-  const documents = allProducts.flatMap(product => product.documents)
-  const assets = allProducts.flatMap(product => product.assets)
+  // Pages of a product share its card; pages without a product picture use the site card in static/.
+  const documents = allProducts.flatMap(product => product.documents.map(doc => ({ ...doc, image: product.thumbnail ? `/${product.slug}/${OG.file}` : undefined })))
+  // The source picture stays in the repository; only the derived files are published.
+  const assets = allProducts.flatMap(product => product.assets.filter(asset => asset.source !== product.thumbnailSource))
+  const derived = allProducts.filter(product => product.thumbnail).flatMap(product => [
+    { source: product.thumbnailSource, path: `/${product.slug}/${THUMBNAIL}`, file: `products/${product.folder} (thumbnail)`, make: thumbnail },
+    { source: product.thumbnailSource, path: `/${product.slug}/${OG.file}`, file: `products/${product.folder} (share card)`, make: ogImage },
+  ])
   const reserved = new Set(['en', ...readdirSync(join(root, 'static'))])
   const slugs = new Set()
   for (const product of allProducts) {
@@ -194,7 +206,7 @@ export function build(root, out) {
   }
   // Check every output before touching the previous build, including file/directory conflicts.
   const outputs = new Map()
-  for (const item of [...documents.map(doc => ({ ...doc, output: `${doc.path}index.html` })), ...assets.map(asset => ({ ...asset, output: asset.path }))]) {
+  for (const item of [...documents.map(doc => ({ ...doc, output: `${doc.path}index.html` })), ...[...assets, ...derived].map(asset => ({ ...asset, output: asset.path }))]) {
     if (outputs.has(item.output)) throw new Error(`${item.file}: output path conflicts with ${outputs.get(item.output)}`)
     outputs.set(item.output, item.file)
   }
@@ -211,6 +223,10 @@ export function build(root, out) {
     mkdirSync(dirname(join(out, asset.path)), { recursive: true })
     cpSync(asset.source, join(out, asset.path))
   }
+  await Promise.all(derived.map(async item => {
+    mkdirSync(dirname(join(out, item.path)), { recursive: true })
+    try { await item.make(item.source, join(out, item.path)) } catch (e) { throw new Error(`${item.file}: ${e.message}`) }
+  }))
   for (const [lang, { path }] of Object.entries(LANGS)) {
     mkdirSync(join(out, path), { recursive: true })
     writeFileSync(join(out, path, 'index.html'), render(site, products, lang))
@@ -225,5 +241,5 @@ export function build(root, out) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = dirname(fileURLToPath(import.meta.url))
-  console.log(`built ${build(root, join(root, 'dist')).length} products -> dist/`)
+  console.log(`built ${(await build(root, join(root, 'dist'))).length} products -> dist/`)
 }

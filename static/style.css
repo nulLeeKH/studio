@@ -95,10 +95,10 @@ html:not(.js) .theme-toggle { display: none; }
 .link::before { content: "▶ "; }
 .link a { color: var(--muted); }
 
-/* the screenshot, in a dashed frame like a captured screen */
+/* the screenshot, in a dashed frame like a captured screen: a 16:10 frame, the picture never cropped */
 .shot { display: block; grid-row: 1; margin-bottom: .9rem; padding: .35rem; border: 1px dashed var(--rule); text-decoration: none; }
 .shot:hover { background: none; }
-.shot img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: top; filter: grayscale(.35); }
+.shot img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: contain; filter: grayscale(.35); }
 .shot:hover img { filter: none; }
 @media (min-width: 40rem) { /* text first, like a menu; the picture as a small thumbnail on the right */
   .product { grid-template-columns: 4ch minmax(0, 1fr) 11rem; column-gap: 1rem; }
@@ -108,7 +108,7 @@ html:not(.js) .theme-toggle { display: none; }
 .shot-empty { /* no picture yet: the name on a dot screen */
   display: grid;
   place-items: center;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
   color: var(--muted);
   background: radial-gradient(var(--rule) 1px, transparent 1.2px) 0 0 / 8px 8px;
 }
@@ -118,12 +118,12 @@ html:not(.js) .theme-toggle { display: none; }
 .cover.has-body { padding-bottom: 2rem; border-bottom: 1px dashed var(--rule); margin-bottom: 2rem; }
 .cover-shot { display: block; margin-bottom: 1.25rem; padding: .35rem; border: 1px dashed var(--rule); text-decoration: none; }
 .cover-shot:hover { background: none; }
-.cover-shot img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: top; filter: grayscale(.35); }
+.cover-shot img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: contain; filter: grayscale(.35); }
 .cover-shot:hover img { filter: none; }
 .cover-shot-empty {
   display: grid;
   place-items: center;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
   color: var(--muted);
   font-size: 1.25rem;
   background: radial-gradient(var(--rule) 1px, transparent 1.2px) 0 0 / 8px 8px;

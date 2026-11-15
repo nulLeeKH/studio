@@ -16,7 +16,7 @@ Each product is one folder holding its introduction, documents and images. The p
 ```
 products/01-wesualizer/
   index.md
-  thumbnail.png       # optional, 1280×800 recommended
+  thumbnail.png       # optional source picture (.png, .jpg or .webp), 16:10 recommended
   privacy/
     ko.md
     en.md
@@ -42,6 +42,15 @@ Everything from here is the body shown at /wesualizer/. It can be omitted.
 `name` is required. Without `url`, the list shows "준비 중" ("Coming soon" on `/en/`). `summary_ko` and `summary_en` go together. `draft: true` only hides the product from the Korean and English product lists and counts. Its root page, documents, images and attachments stay public, so a privacy policy can be published first. To list the product, delete the `draft` line or set it to `false`.
 
 A product's title in the list links to its studio page (`/wesualizer/` and so on). The URL below the title links to the actual service.
+
+## Thumbnail and share card
+
+Put one source picture next to `index.md` as `thumbnail.png`, `thumbnail.jpg` or `thumbnail.webp`, at full size. The build derives the rest and does not publish the source:
+
+- `/<product>/thumbnail.webp`: always 1600×1000, shown in the list and on the product page inside a 16:10 dashed frame. The whole picture is scaled to fit and centered, never cropped; any other ratio gets transparent margins.
+- `/<product>/og.jpg`: the 1200×630 share card for the product's pages. The whole picture sits on a dark background with a white dashed line around it. Pages of a product without a picture use the site card, `static/og.jpg`.
+
+16:10 fills the frame exactly. Screens of other shapes, portrait phones included, still fit without cropping.
 
 ## Documents and files
 
